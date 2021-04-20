@@ -1,9 +1,11 @@
 import logging
+import structlog
 import multiprocessing
 import os
 import threading
 
 import decisionengine.framework.taskmanager.ProcessingState as ProcessingState
+import decisionengine.framework.modules.de_logger_configDict as configDict
 
 FORMATTER = logging.Formatter(
     "%(asctime)s - %(name)s - %(module)s - %(process)d - %(threadName)s - %(levelname)s - %(message)s")
@@ -40,29 +42,39 @@ class Worker(multiprocessing.Process):
         return self.task_manager.get_state_name()
 
     def run(self):
-        logger = logging.getLogger()
-        logger_rotate_by = self.logger_config.get("file_rotate_by", "size")
+      
+        myname = self.task_manager.name
+        configDict.pylogconfig["handlers"].update({f"{myname}": {
+                                                           "level": "DEBUG",
+                                                           "filename": "/var/log/decisionengine/channel_debug.log",
+                                                           "formatter": "plain",
+                                                           "class": "logging.handlers.RotatingFileHandler",
+                                                           "maxBytes": 200 * 1000000,
+                                                           "backupCount": self.logger_config.get("max_backup_count", 6)
+                                                          }
+                                                  })
+        
+        configDict.pylogconfig["loggers"].update({f"{myname}":{
+                                                             "handlers": [f"{myname}"],
+                                                             "level": "DEBUG",
+                                                             "propagate": True,
+                                                             }
+                                                  })
+        
+        logging.config.dictConfig(configDict.pylogconfig)
 
-        if logger_rotate_by == "size":
-            file_handler = logging.handlers.RotatingFileHandler(os.path.join(
-                                                                os.path.dirname(
-                                                                    self.logger_config["log_file"]),
-                                                                self.task_manager.name + ".log"),
-                                                                maxBytes=self.logger_config.get("max_file_size",
-                                                                200 * 1000000),
-                                                                backupCount=self.logger_config.get("max_backup_count",
-                                                                6))
-        else:
-            file_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(
-                                                                     os.path.dirname(
-                                                                         self.logger_config["log_file"]),
-                                                                     self.task_manager.name + ".log"),
-                                                                     when=self.logger_config.get("rotation_time_unit", 'D'),
-                                                                     interval=self.logger_config.get("rotation_time_interval", '1'))
+        structlog.getLogger("struct_de").debug("test1 from Workers", msg="msg")
+        structlog.getLogger(f"{myname}").debug(msg="", event="testing from Workers.py")
+        #logging.getLogger("testing").debug(msg="", event="testing from Workers.py")FAILED
+        logging.getLogger(f"{myname}").debug("testing from Workers.py")
 
-        file_handler.setFormatter(FORMATTER)
+        
+        #logger = logging.getLogger()
+        logger = logging.getLogger(f"{myname}")
+        
+
+      
         logger.setLevel(logging.WARNING)
-        logger.addHandler(file_handler)
         channel_log_level = self.logger_config.get("global_channel_log_level", "WARNING")
         self.task_manager.set_loglevel(channel_log_level)
         self.task_manager.run()

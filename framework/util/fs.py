@@ -10,7 +10,7 @@ def files_with_extensions(dir_path, *extensions):
 
     Results are sorted by channel name to ensure stable output.
     '''
-    logging.getLogger("decision_engine").debug("files_with_extensions called")
+    logging.getLogger("").debug("files_with_extensions called")
     logging.getLogger("decision_engine").debug("dir_path is %s!", dir_path)
 
     if len(extensions) == 0:

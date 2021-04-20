@@ -134,6 +134,7 @@ class ChannelConfigHandler():
     def __init__(self, global_config, channel_config_dir):
         self.channel_config_dir = channel_config_dir
         self.channels = {}
+        # self.logger = _make_logger(global_config)["pylogger"]
         self.logger = _make_logger(global_config)
 
     def get_produces(self, channel_config):
@@ -157,7 +158,8 @@ class ChannelConfigHandler():
 
     def _load_channel(self, channel_name, path):
         channel_config = None
-        self.logger.debug("Loading channel %s from %s.", channel_name, path)
+        #de_logger.log("DEBUG","CHANNEL LOAD",f"Loading channel {channel_name} from {path}.")
+        self.logger["pylogger"].debug("Loading channel %s from %s.", channel_name, path)
         try:
             channel_config = ValidConfig.ValidConfig(path)
         except Exception as msg:
@@ -171,7 +173,9 @@ class ChannelConfigHandler():
             return (False,
                     f"The channel configuration file {path} contains a "
                     f"validation error\n{msg}\nSKIPPING channel")
-        self.logger.debug("Channel %s config is valid.", channel_name)
+
+    #de_logger.log("DEBUG","CONFIG VALIDATED", f"Channel {channel_name} config is valid.")
+        self.logger["pylogger"].debug("Channel %s config is valid.", channel_name)
 
         self.channels[channel_name] = channel_config
         return (True, channel_config)
@@ -199,7 +203,8 @@ class ChannelConfigHandler():
         '''
         if self.channels:
             self.channels = {}
-            self.logger.info("All channel configurations have been removed and are being reloaded.")
+            #de_logger.log("INFO","CONFIG RELOAD","All channel configurations have been removed and are being reloaded.")
+            self.logger["pylogger"].info("All channel configurations have been removed and are being reloaded.")
 
         files = fs.files_with_extensions(self.channel_config_dir, '.conf', '.jsonnet')
         for channel_name, full_path in files:
@@ -209,4 +214,5 @@ class ChannelConfigHandler():
 
             success, result = self._load_channel(channel_name, full_path)
             if not success:
-                self.logger.error(result)
+              #de_logger.log("ERROR","CHANNEL LOAD FAILURE",f"{result}")
+              self.logger["pylogger"].error(result)
