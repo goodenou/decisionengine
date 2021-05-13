@@ -1,5 +1,5 @@
 import socket
-import logging
+import decisionengine.framework.modules.de_logger as de_logger
 
 def get_random_port():
     try:
@@ -9,8 +9,8 @@ def get_random_port():
             return s.getsockname()[1]
 
     except OSError:
-        logging.getLogger().error("problem with get_random_port")
+        de_logger.log("CRITICAL", "problem with get_random_port", "")
         raise
     except Exception:
-        logging.getLogger().exception("Unexpected error!")
+        de_logger.log("CRITICAL", "Unexpected error!", "")
         raise

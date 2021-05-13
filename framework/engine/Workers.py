@@ -5,7 +5,7 @@ import os
 import threading
 
 import decisionengine.framework.taskmanager.ProcessingState as ProcessingState
-import decisionengine.framework.modules.de_logger_configDict as configDict
+import decisionengine.framework.modules.logging_configDict as configDict
 
 FORMATTER = logging.Formatter(
     "%(asctime)s - %(name)s - %(module)s - %(process)d - %(threadName)s - %(levelname)s - %(message)s")
@@ -44,9 +44,14 @@ class Worker(multiprocessing.Process):
     def run(self):
       
         myname = self.task_manager.name
+        myfilename = os.path.join(os.path.dirname(self.logger_config["log_file"]),myname + ".log")
+        
+        logger = logging.getLogger(f"{myname}")
+        logger.setLevel(logging.WARNING)
+        
         configDict.pylogconfig["handlers"].update({f"{myname}": {
                                                            "level": "DEBUG",
-                                                           "filename": "/var/log/decisionengine/channel_debug.log",
+                                                           "filename": f"{myfilename}",
                                                            "formatter": "plain",
                                                            "class": "logging.handlers.RotatingFileHandler",
                                                            "maxBytes": 200 * 1000000,
@@ -54,27 +59,27 @@ class Worker(multiprocessing.Process):
                                                           }
                                                   })
         
-        configDict.pylogconfig["loggers"].update({f"{myname}":{
-                                                             "handlers": [f"{myname}"],
-                                                             "level": "DEBUG",
-                                                             "propagate": True,
-                                                             }
-                                                  })
+        #configDict.pylogconfig["loggers"].update({f"{myname}":{
+        #                                                    "handlers": [f"{myname}"],
+        #                                                    "level": "DEBUG",
+        #                                                    "propagate": True,
+        #                                                     }
+        #                                          })
+        
+        # Note: Setting up the root logger ensures that we get the logs from the other modules
+        # in this process. The f"{myname}" logger defined above logs to the same file as the
+        # root logger here. This is not something I understand.
+        configDict.pylogconfig.update({"root":{
+                                          "handlers": [f"{myname}", "file_structlog_debug"],
+                                          "level": "DEBUG"
+                                                  }
+                                      })
         
         logging.config.dictConfig(configDict.pylogconfig)
-
+        
         structlog.getLogger("struct_de").debug("test1 from Workers", msg="msg")
-        structlog.getLogger(f"{myname}").debug(msg="", event="testing from Workers.py")
-        #logging.getLogger("testing").debug(msg="", event="testing from Workers.py")FAILED
-        logging.getLogger(f"{myname}").debug("testing from Workers.py")
-
+        structlog.getLogger(f"{myname}").debug(msg="", event="testing from Workers.py")#THIS DOESN'T PRINT
         
-        #logger = logging.getLogger()
-        logger = logging.getLogger(f"{myname}")
-        
-
-      
-        logger.setLevel(logging.WARNING)
         channel_log_level = self.logger_config.get("global_channel_log_level", "WARNING")
         self.task_manager.set_loglevel(channel_log_level)
         self.task_manager.run()

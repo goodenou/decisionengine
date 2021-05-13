@@ -6,15 +6,25 @@ import logging
 import logging.handlers
 import logging.config
 import structlog
-import decisionengine.framework.modules.de_logger_configDict as configDict
+import decisionengine.framework.modules.logging_configDict as configDict
 
 MB = 1000000
 
+#do I want/need to define this dict?
 myloggers = {"pylogger" : logging.getLogger("decision_engine"),
              "structlogger" : structlog.getLogger("struct_de")}
 
 logger = myloggers["pylogger"]
 slogger = myloggers["structlogger"]
+
+exception_logger = logging.getLogger("exception")
+exception_logger.setLevel(logging.ERROR)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(module)s - %(threadName)s - %(levelname)s - %(message)s",
+                                datefmt="%Y-%m-%dT%H:%M:%S%z")
+fh = logging.FileHandler('/var/log/decisionengine/exception.log')
+fh.setLevel(logging.ERROR)
+fh.setFormatter(formatter)
+exception_logger.addHandler(fh)
 
 
 def set_logging(log_level,
@@ -47,74 +57,38 @@ def set_logging(log_level,
         os.makedirs(dirname)
     
     logger.setLevel(getattr(logging, log_level.upper()))
+    #slogger.setLevel(getattr(logging, log_level.upper()))
     if logger.handlers:
         return
 
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(module)s - %(threadName)s - %(levelname)s - %(message)s")
-
-    configDict.pylogconfig["handlers"]["file_all_debug"].update({"filename": "{}_all_debug".format(log_file_name)})
-    configDict.pylogconfig["handlers"]["file_all_info"].update({"filename": "{}_all_info".format(log_file_name)})
+    configDict.pylogconfig["handlers"]["file_debug"].update({"filename": "{}_debug_NEW".format(log_file_name)})
+    configDict.pylogconfig["handlers"]["file_info"].update({"filename": "{}_NEW".format(log_file_name)})
     configDict.pylogconfig["handlers"]["file_structlog_debug"].update({"filename": "{}_structlog_debug".format(log_file_name)})
 
     if file_rotate_by == "size":
-        file_handler = logging.handlers.RotatingFileHandler(log_file_name,
-                                                            maxBytes=max_file_size,
-                                                            backupCount=max_backup_count)
-        configDict.pylogconfig["handlers"]["file_all_debug"].update({"class": "logging.handlers.RotatingFileHandler",
-                                                                     "maxBytes": max_file_size,
-                                                                     "backupCount": max_backup_count})
-        configDict.pylogconfig["handlers"]["file_all_info"].update({"class": "logging.handlers.RotatingFileHandler",
-                                                                    "maxBytes": max_file_size,
-                                                                    "backupCount": max_backup_count})
+        configDict.pylogconfig["handlers"]["file_debug"].update({"class": "logging.handlers.RotatingFileHandler",
+                                                                 "maxBytes": max_file_size,
+                                                                 "backupCount": max_backup_count})
+        configDict.pylogconfig["handlers"]["file_info"].update({"class": "logging.handlers.RotatingFileHandler",
+                                                                  "maxBytes": max_file_size,
+                                                                  "backupCount": max_backup_count})
         configDict.pylogconfig["handlers"]["file_structlog_debug"].update({"class": "logging.handlers.RotatingFileHandler",
                                                                            "maxBytes": max_file_size,
                                                                            "backupCount": max_backup_count})
 
     else:
-        file_handler = logging.handlers.TimedRotatingFileHandler(log_file_name,
-                                                                 when=rotation_time_unit,
-                                                                 interval=rotation_interval)
-        configDict.pylogconfig["handlers"]["file_all_debug"].update({"class": "logging.handlers.TimedRotatingFileHandler",
-                                                                     "when": rotation_time_unit,
-                                                                     "interval": rotation_interval})
-        configDict.pylogconfig["handlers"]["file_all_info"].update({"class": "logging.handlers.TimedRotatingFileHandler",
-                                                                    "when": rotation_time_unit,
-                                                                    "interval": rotation_interval})
+        configDict.pylogconfig["handlers"]["file_debug"].update({"class": "logging.handlers.TimedRotatingFileHandler",
+                                                                 "when": rotation_time_unit,
+                                                                 "interval": rotation_interval})
+        configDict.pylogconfig["handlers"]["file_info"].update({"class": "logging.handlers.TimedRotatingFileHandler",
+                                                            "when": rotation_time_unit,
+                                                            "interval": rotation_interval})
         configDict.pylogconfig["handlers"]["file_structlog_debug"].update({"class": "logging.handlers.TimedRotatingFileHandler",
                                                                            "when": rotation_time_unit,
                                                                            "interval": rotation_interval})
 
-
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.INFO)
-    logger.addHandler(file_handler)
-
-    if log_file_name != '/dev/null':
-        if file_rotate_by == "size":
-            debug_handler = logging.handlers.RotatingFileHandler("{}_debug".format(log_file_name),
-                                                                 maxBytes=max_file_size,
-                                                                 backupCount=max_backup_count)
-        else:
-            debug_handler = logging.handlers.TimedRotatingFileHandler("{}_debug".format(log_file_name),
-                                                                      when=rotation_time_unit,
-                                                                      interval=rotation_interval)
-
-        debug_handler.setFormatter(formatter)
-        debug_handler.setLevel(logging.DEBUG)
-        logger.addHandler(debug_handler)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.ERROR)
-    logger.addHandler(console_handler)
-
-
     logging.config.dictConfig(configDict.pylogconfig)
-
-    logger.info("!!!testing!!!") #THIS IS A decision_engine logger log
-    log("DEBUG","DEBUG event","message goes here")
-    log("INFO","INFO event","message goes here")
+    log("DEBUG","de logging setup complete","additional message")
 
 
 def log(level,
@@ -125,9 +99,14 @@ def log(level,
     """
     This is the logging call for our loggers
     """
+    
     log_level = getattr(logging, level.upper())
-    #logger.log(log_level, msg_to_log)creates log in decision_engine_log with name 'de' : will become logger 
+      
+    if level == "CRITICAL":
+        exception_logger.exception(event_to_log)
+    logger.log(log_level, event_to_log)
     slogger.log(log_level, msg=msg_to_log, event=event_to_log)
+
 
 
 def get_logger():
@@ -136,24 +115,6 @@ def get_logger():
     :rtype: :class:`logging.Logger` - rotating file logger
     """
     return myloggers
-
-
-def set_stream_logging(logger_name=''):
-    """
-    This is for debugging.
-    Set stream logging for logger.
-
-    :type logger_name: :obj:`str`
-    :arg logger_name: logger name
-    :rtype: :class:`logging.Logger`
-    """
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(module)s - %(levelname)s - %(message)s")
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
-    return logger
 
 
 if __name__ == '__main__':
@@ -167,5 +128,4 @@ if __name__ == '__main__':
     logger.error("THIS IS ERROR")
     logger.info("THIS IS INFO")
     logger.debug("THIS IS DEBUG")
-    
     slogger.error(msg="THIS IS atructlog ERROR", event="error")

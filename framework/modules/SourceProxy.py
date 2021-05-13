@@ -1,7 +1,6 @@
 """
 Fill in data from another channel data block
 """
-import logging
 import pprint
 import time
 
@@ -10,6 +9,8 @@ import pandas as pd
 import decisionengine.framework.dataspace.datablock as datablock
 import decisionengine.framework.dataspace.dataspace as dataspace
 from decisionengine.framework.modules import Source
+import decisionengine.framework.modules.de_logger as de_logger
+
 
 RETRIES = 10
 RETRY_TO = 60
@@ -48,7 +49,6 @@ class SourceProxy(Source.Source):
         self.data_keys = args[0]['Dataproducts']
         self.retries = args[0].get('retries', RETRIES)
         self.retry_to = args[0].get('retry_timeout', RETRY_TO)
-        self.logger = logging.getLogger()
 
     def post_create(self, global_config):
         self.dataspace = dataspace.DataSpace(global_config)
@@ -106,21 +106,20 @@ class SourceProxy(Source.Source):
         for _ in range(self.retries):
             try:
                 tm = self.dataspace.get_taskmanager(self.source_channel)
-                self.logger.debug('task manager %s', tm)
+                de_logger.log("DEBUG", f"task manager {tm}", "")
                 if tm['taskmanager_id']:
                     # get last datablock
                     data_block = datablock.DataBlock(self.dataspace,
                                                      self.source_channel,
                                                      taskmanager_id=tm['taskmanager_id'],
                                                      sequence_id=tm['sequence_id'])
-                    self.logger.debug('data block %s', data_block)
+                    de_logger.log("DEBUG", f"data block {data_block}", "")
                     if data_block and data_block.generation_id:
-                        self.logger.debug("DATABLOCK %s", data_block)
+                        de_logger.log("DEBUG", f"DATABLOCK {data_block}", "")
                         # This is a valid datablock
                         break
             except Exception as detail:
-                self.logger.error(
-                    'Error getting datablock for %s %s', self.source_channel, detail)
+                de_logger.log("ERROR", f"Error getting datablock for {self.source_channel}: {detail}", "")
 
             time.sleep(self.retry_to)
 
@@ -144,7 +143,7 @@ class SourceProxy(Source.Source):
                                 self._get_data(data_block, k_in))
                             filled_keys.append(k)
                         except KeyError as ke:
-                            self.logger.debug("KEYERROR %s", ke)
+                            de_logger.log("DEBUG", f"KEYERROR {ke}", "")
             if len(filled_keys) == len(self.data_keys):
                 break
             # expected data is not ready yet

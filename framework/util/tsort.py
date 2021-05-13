@@ -20,8 +20,6 @@ else
     return L (a topologically sorted order)
 """
 
-import logging
-
 
 def tsort(graph):
     """
@@ -34,8 +32,6 @@ def tsort(graph):
     :rtype: :obj:`list`
 
     """
-    logging.getLogger().debug("in tsort")
-
     if isinstance(graph, list):
         graph = dict(graph)
     """

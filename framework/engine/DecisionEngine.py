@@ -26,6 +26,8 @@ import decisionengine.framework.dataspace.dataspace as dataspace
 import decisionengine.framework.taskmanager.ProcessingState as ProcessingState
 import decisionengine.framework.taskmanager.TaskManager as TaskManager
 
+import decisionengine.framework.modules.de_logger as de_logger
+
 
 def _channel_preamble(name):
     header = f'Channel: {name}'
@@ -45,15 +47,15 @@ class DecisionEngine(socketserver.ThreadingMixIn,
                                                   server_address,
                                                   logRequests=False,
                                                   requestHandler=RequestHandler)
-
-        self.logger = logging.getLogger("decision_engine")
+        self.logger = logging.getLogger("decision_engine")#may not need this if we get rid of get_logger() function
         signal.signal(signal.SIGHUP, self.handle_sighup)
         self.workers = Workers()
         self.channel_config_loader = channel_config_loader
         self.global_config = global_config
         self.dataspace = dataspace.DataSpace(self.global_config)
         self.reaper = dataspace.Reaper(self.global_config)
-        self.logger.info("DecisionEngine started on {}".format(server_address))
+        #self.logger.info("DecisionEngine started on {}".format(server_address))
+        de_logger.log("INFO", f"DecisionEngine started on {server_address}", "")
 
     def get_logger(self):
         return self.logger
@@ -69,7 +71,7 @@ class DecisionEngine(socketserver.ThreadingMixIn,
     def block_until(self, state):
         with self.workers.unguarded_access() as workers:
             if not workers:
-                self.logger.info('No active channels.')
+                de_logger.log("INFO",'No active channels.',"")
             for tm in workers.values():
                 if tm.is_alive():
                     tm.wait_until(state)
@@ -77,7 +79,7 @@ class DecisionEngine(socketserver.ThreadingMixIn,
     def block_while(self, state):
         with self.workers.unguarded_access() as workers:
             if not workers:
-                self.logger.info('No active channels.')
+                de_logger.log("INFO",'No active channels.',"")
             for tm in workers.values():
                 if tm.is_alive():
                     tm.wait_while(state)
@@ -288,23 +290,23 @@ class DecisionEngine(socketserver.ThreadingMixIn,
         worker = Worker(task_manager, self.global_config['logger'])
         with self.workers.access() as workers:
             workers[channel_name] = worker
-        self.logger.debug(f"Trying to start {channel_name}")
+        de_logger.log("DEBUG", f"Trying to start {channel_name}", "")
         worker.start()
         worker.wait_while(ProcessingState.State['BOOT'])
-        self.logger.info(f"Channel {channel_name} started")
+        de_logger.log("INFO",f"Channel {channel_name} started","")
 
     def start_channels(self):
         self.channel_config_loader.load_all_channels()
 
         if not self.channel_config_loader.get_channels():
-            self.logger.info("No channel configurations available in " +
-                             f"{self.channel_config_loader.channel_config_dir}")
+            de_logger.log("INFO", "No channel configurations available in " +
+                             f"{self.channel_config_loader.channel_config_dir}","")
 
         for name, config in self.channel_config_loader.get_channels().items():
             try:
                 self.start_channel(name, config)
             except Exception as e:
-                self.logger.error(f"Channel {name} failed to start : {e}")
+                de_logger.log("EXCEPTION", f"Channel {name} failed to start : {e}", "")
 
     def rpc_start_channel(self, channel_name):
         with self.workers.access() as workers:
@@ -337,7 +339,7 @@ class DecisionEngine(socketserver.ThreadingMixIn,
         with self.workers.access() as workers:
             if channel not in workers:
                 return False
-            self.logger.debug(f"Trying to stop {channel}")
+            de_logger.log("DEBUG", f"Trying to stop {channel}", "")
             self.stop_worker(workers[channel])
             del workers[channel]
         return True

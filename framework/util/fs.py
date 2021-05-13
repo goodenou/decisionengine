@@ -2,6 +2,8 @@ import os
 import logging
 from pathlib import Path
 
+import decisionengine.framework.modules.de_logger as de_logger
+
 def files_with_extensions(dir_path, *extensions):
     '''
     Return all files in dir_path that match the provided extensions.
@@ -10,12 +12,11 @@ def files_with_extensions(dir_path, *extensions):
 
     Results are sorted by channel name to ensure stable output.
     '''
-    logging.getLogger("").debug("files_with_extensions called")
-    logging.getLogger("decision_engine").debug("dir_path is %s!", dir_path)
+    de_logger.log("DEBUG", f"dir_path is {dir_path}!", "")
 
     if len(extensions) == 0:
         extensions = ('')
-        logging.getLogger("decision_engine").info("file extensions have zero length")
+        de_logger.log("INFO", "file extensions have zero length", "")
 
     name_to_path = []
 
@@ -27,10 +28,10 @@ def files_with_extensions(dir_path, *extensions):
                 channel_name = os.path.splitext(entry.name)[0]
                 name_to_path.append([channel_name, str(entry)])
     except FileNotFoundError:
-        logging.getLogger("decision_engine").exception("invalid path to config file given")
+        de_logger.log("CRITICAL", "invalid path to config file given", "")
         raise
     except Exception:
-        logging.getLogger("decision_engine").exception("Unexpected error!")
+        de_logger.log("CRITICAL", "Unexpected error!", "")
         raise
     else:
         return tuple(sorted(name_to_path, key=lambda x: x[0]))

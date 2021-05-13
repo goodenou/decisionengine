@@ -1,8 +1,7 @@
 import enum
 import importlib
-import logging
 import threading
-
+import decisionengine.framework.modules.de_logger as de_logger
 
 class DataSpaceConfigurationError(Exception):
     """
@@ -210,8 +209,8 @@ class Reaper():
         self.thread = None
         self.state = State.IDLE
         self.state_lock = threading.Lock()
-        self.logger = logging.getLogger()
         self._cv = threading.Condition()
+
 
     def get_retention_interval(self):
         return self.retention_interval
@@ -244,7 +243,7 @@ class Reaper():
                 self._set_state(State.RUNNING)
                 self.reap()
             except Exception as e:
-                self.logger.error("Reaper.reap() failed with {}".format(e))
+                de_logger.log("ERROR", f"Reaper.reap() failed with {e}", "")
                 self._set_state(State.ERROR)
                 break
             self._set_state(State.SLEEPING)
