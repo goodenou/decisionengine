@@ -9,6 +9,10 @@ import structlog
 import decisionengine.framework.modules.logging_configDict as configDict
 
 MB = 1000000
+#myname =  __name__.split(".")
+#myname.reverse()
+#my = myname[0]
+
 
 #do I want/need to define this dict?
 myloggers = {"pylogger" : logging.getLogger("decision_engine"),
@@ -88,13 +92,13 @@ def set_logging(log_level,
                                                                            "interval": rotation_interval})
 
     logging.config.dictConfig(configDict.pylogconfig)
-    log("DEBUG","de logging setup complete","additional message")
+    log("DEBUG", "de logging setup complete", "additional message", __name__)
 
 
 def log(level,
         event_to_log='',
         msg_to_log='',
-        #module=''
+        modulename=''
         ):
     """
     This is the logging call for our loggers
@@ -103,9 +107,9 @@ def log(level,
     log_level = getattr(logging, level.upper())
       
     if level == "CRITICAL":
-        exception_logger.exception(event_to_log)
+      exception_logger.exception(event_to_log)
     logger.log(log_level, event_to_log)
-    slogger.log(log_level, msg=msg_to_log, event=event_to_log)
+    slogger.log(log_level, msg=msg_to_log, event=event_to_log, module=modulename)
 
 
 

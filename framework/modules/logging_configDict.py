@@ -7,9 +7,11 @@ import logging.config
 import structlog
 
 timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
+
 pre_chain = [structlog.stdlib.add_logger_name,
              structlog.stdlib.add_log_level,
-             timestamper,]
+             timestamper,
+            ]
 
 
 pylogconfig = {
@@ -19,18 +21,20 @@ pylogconfig = {
                               "plain": {
                                   "()": structlog.stdlib.ProcessorFormatter,
                                   "processor": structlog.dev.ConsoleRenderer(colors=False),
-                                  "foreign_pre_chain": pre_chain
+                                  "foreign_pre_chain": pre_chain,
+                                  "format": "%(message)s [%(module)s]"
                               },
                               "colorful": {
                                   "()": structlog.stdlib.ProcessorFormatter,
                                   "processor": structlog.dev.ConsoleRenderer(colors=True),
                                   "foreign_pre_chain": pre_chain,
+                                  "format": "%(message)s [%(module)s]"
                               },
                               "for_JSON": {
                                   "()": structlog.stdlib.ProcessorFormatter,
                                   "processor": structlog.dev.ConsoleRenderer(colors=False),
+                                  "format": "%(message)s [%(module)s]"
                                   #"foreign_pre_chain": pre_chain,
-                                  #"fmt":"%(module)s - %(threadName)s - %(message)s",
                               },
                             },
                 "handlers": {
