@@ -101,6 +101,7 @@ class Worker(multiprocessing.Process):
                 }
             }
         )
+
         logging.config.dictConfig(logconf)
         logger = logger.bind(module=__name__.split(".")[-1])
 

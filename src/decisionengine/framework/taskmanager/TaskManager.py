@@ -141,6 +141,8 @@ class TaskManager:
                                                  generation_id)  # my current data block
         self.name = name
         self.logger = structlog.getLogger(f"{self.name}")
+        self.logger = self.logger.bind(module=__name__.split(".")[-1])
+
         self.channel = Channel(channel_dict)
         self.state = ProcessingState()
         self.loglevel = multiprocessing.Value('i', logging.WARNING)
@@ -149,8 +151,6 @@ class TaskManager:
         # has been reimplemented.
         for src_worker in self.channel.sources.values():
             src_worker.worker.post_create(global_config)
-
-        self.logger = self.logger.bind(module=__name__.split(".")[-1])
 
     def wait_for_all(self, events_done):
         """
@@ -279,8 +279,7 @@ class TaskManager:
 
     def set_to_shutdown(self):
         self.state.set(State.SHUTTINGDOWN)
-        logging.getLogger("decision_engine").debug('Shutting down. Will call '
-                                                   'shutdown on all publishers')
+        delogger.debug('Shutting down. Will call shutdown on all publishers')
         for publisher_worker in self.channel.publishers.values():
             publisher_worker.worker.shutdown()
         self.state.set(State.SHUTDOWN)

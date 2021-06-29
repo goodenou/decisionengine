@@ -80,7 +80,6 @@ def set_logging(log_level,
     logging.config.dictConfig(logconf)
     logger.debug("de logging setup complete")
 
-    return None
 
 def get_logger():
     """
@@ -91,7 +90,6 @@ def get_logger():
 
 
 if __name__ == '__main__':
-    my_logger = logging.getLogger("decision_engine")
     set_logging("ERROR",
                 "size",
                 'D',
@@ -99,6 +97,6 @@ if __name__ == '__main__':
                 max_backup_count=5,
                 max_file_size=100000,
                 log_file_name='%s/de_log/decision_engine_log0' % (os.environ.get('HOME')))
-    my_logger.error("THIS IS ERROR")
-    my_logger.info("THIS IS INFO")
-    my_logger.debug("THIS IS DEBUG")
+    logger.error("THIS IS ERROR")
+    logger.info("THIS IS INFO")
+    logger.debug("THIS IS DEBUG")

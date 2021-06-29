@@ -24,12 +24,6 @@ pylogconfig = {
             # "foreign_pre_chain": pre_chain,
             "format": userformat,
         },
-        "colorful": {
-            "()": structlog.stdlib.ProcessorFormatter,
-            "processor": structlog.dev.ConsoleRenderer(colors=True),
-            "foreign_pre_chain": pre_chain,
-            "format": "%(message)s",
-        },
         "for_JSON": {
             "()": structlog.stdlib.ProcessorFormatter,
             "processor": structlog.dev.ConsoleRenderer(colors=False),
@@ -40,7 +34,8 @@ pylogconfig = {
         "default": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "colorful",
+            "formatter": "plain",
+
         },
         # "file_all_debug": {
         #                   "level": "DEBUG",
