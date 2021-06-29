@@ -1,6 +1,7 @@
 """
 Logger to use in all modules
 """
+import copy
 import os
 import logging
 import logging.handlers
@@ -44,38 +45,42 @@ def set_logging(log_level,
 
     logger.setLevel(getattr(logging, log_level.upper()))
     if logger.handlers:
-        return
+        return None
 
-    configDict.pylogconfig["handlers"]["de_file_debug"].update({"filename": "{}_debug".format(log_file_name)})
-    configDict.pylogconfig["handlers"]["de_file_info"].update({"filename": "{}".format(log_file_name)})
-    configDict.pylogconfig["handlers"]["file_structlog_debug"].update({"filename": "{}_structlog_debug".format(log_file_name)})
+    logconf = copy.deepcopy(configDict.pylogconfig)
+
+    logconf["handlers"]["de_file_debug"].update({"filename": "{}_debug".format(log_file_name)})
+    logconf["handlers"]["de_file_info"].update({"filename": "{}".format(log_file_name)})
+    logconf["handlers"]["file_structlog_debug"].update({"filename": "{}_structlog_debug".format(log_file_name)})
 
     if file_rotate_by == "size":
-        configDict.pylogconfig["handlers"]["de_file_debug"].update({"class": "logging.handlers.RotatingFileHandler",
+        logconf["handlers"]["de_file_debug"].update({"class": "logging.handlers.RotatingFileHandler",
                                                                     "maxBytes": max_file_size,
                                                                     "backupCount": max_backup_count})
-        configDict.pylogconfig["handlers"]["de_file_info"].update({"class": "logging.handlers.RotatingFileHandler",
+        logconf["handlers"]["de_file_info"].update({"class": "logging.handlers.RotatingFileHandler",
                                                                    "maxBytes": max_file_size,
                                                                    "backupCount": max_backup_count})
-        configDict.pylogconfig["handlers"]["file_structlog_debug"].update({"class": "logging.handlers.RotatingFileHandler",
+        logconf["handlers"]["file_structlog_debug"].update({"class": "logging.handlers.RotatingFileHandler",
                                                                            "maxBytes": max_file_size,
                                                                            "backupCount": max_backup_count})
 
     elif file_rotate_by == "time":
-        configDict.pylogconfig["handlers"]["de_file_debug"].update({"class": "logging.handlers.TimedRotatingFileHandler",
+        logconf["handlers"]["de_file_debug"].update({"class": "logging.handlers.TimedRotatingFileHandler",
                                                                     "when": rotation_time_unit,
                                                                     "interval": rotation_interval})
-        configDict.pylogconfig["handlers"]["de_file_info"].update({"class": "logging.handlers.TimedRotatingFileHandler",
+        logconf["handlers"]["de_file_info"].update({"class": "logging.handlers.TimedRotatingFileHandler",
                                                                    "when": rotation_time_unit,
                                                                    "interval": rotation_interval})
-        configDict.pylogconfig["handlers"]["file_structlog_debug"].update({"class": "logging.handlers.TimedRotatingFileHandler",
+        logconf["handlers"]["file_structlog_debug"].update({"class": "logging.handlers.TimedRotatingFileHandler",
                                                                            "when": rotation_time_unit,
                                                                            "interval": rotation_interval})
     else:
         raise ValueError(f"Incorrect 'file_rotate_by':'{file_rotate_by}:'")
 
-    logging.config.dictConfig(configDict.pylogconfig)
+    logging.config.dictConfig(logconf)
     logger.debug("de logging setup complete")
+
+    return None
 
 def get_logger():
     """

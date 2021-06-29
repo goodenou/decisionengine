@@ -61,8 +61,11 @@ class Worker(multiprocessing.Process):
         logger.setLevel(logging.DEBUG)
         logger_rotate_by = self.logger_config.get("file_rotate_by", "size")
 
+        logconf = configDict.pylogconfig.copy()
+
+
         if logger_rotate_by == "size":
-            configDict.pylogconfig["handlers"].update(
+            logconf["handlers"].update(
                 {
                     f"{myname}": {
                         "level": "DEBUG",
@@ -76,7 +79,7 @@ class Worker(multiprocessing.Process):
             )
 
         elif logger_rotate_by == "time":
-            configDict.pylogconfig["handlers"].update(
+            logconf["handlers"].update(
                 {
                     f"{myname}": {
                         "level": "DEBUG",
@@ -91,14 +94,14 @@ class Worker(multiprocessing.Process):
         else:
             raise ValueError(f"Incorrect 'logger_rotate_by':'{logger_rotate_by}:'")
 
-        configDict.pylogconfig["loggers"].update(
+        logconf["loggers"].update(
             {
                 f"{myname}": {
                     "handlers": [f"{myname}", "file_structlog_debug"],
                 }
             }
         )
-        logging.config.dictConfig(configDict.pylogconfig)
+        logging.config.dictConfig(logconf)
         logger = logger.bind(module=__name__.split(".")[-1])
 
         channel_log_level = self.logger_config.get(
